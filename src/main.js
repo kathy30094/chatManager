@@ -8,7 +8,7 @@ import VueSocketIO from "vue-socket.io";
 import socketio from 'socket.io-client';
 
 Vue.config.productionTip = false
-Vue.use(VueSocketIO, 'ws://localhost:3000');
+Vue.use(VueSocketIO, 'ws://localhost:10001');
 
 /* eslint-disable no-new */
 new Vue({

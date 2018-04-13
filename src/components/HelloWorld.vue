@@ -7,7 +7,8 @@
           <span id="status">{{status}}</span> / <span id="online">{{peopleOnline}}</span> online.
       </div>
       <div class="side-nav">
-        <h2>加入房間</h2>
+        <!-- //////////////////////////////////////////待改 -->
+        <!-- <h2>加入房間</h2>
         <div id='join room'>
           <br>
           <label>roomA</label> <input type="checkbox" value="roomA" v-model="roomJoin">
@@ -19,26 +20,14 @@
           <button type='button' @click="join">加入</button>
         </div>
         <br>
-        <br>
+        <br> -->
 
         <h2>選擇聊天對象</h2>
         <div id='chose to-say'>
           <table>
             <tr>
-              <td><label>all</label></td>
-              <td><input type="radio" v-model="chatData.chatSelect" value='all' name="chose"/></td>
-            </tr>
-            <tr>
-              <td><label>roomA</label></td>
-              <td><input type="radio" v-model="chatData.chatSelect" value='roomA' name="chose"/></td>
-            </tr>
-            <tr>
-              <td><label>roomB</label></td>
-              <td><input type="radio" v-model="chatData.chatSelect" value='roomB' name="chose"/></td>
-            </tr>
-            <tr>
-              <td><label>roomC</label></td>
-              <td><input type="radio" v-model="chatData.chatSelect" value='roomC' name="chose"/></td>
+              <td><label>{{roomBelong}}</label></td>
+              <td><input type="radio" v-model="chatData.chatSelect" :value='roomBelong' name="chose"/></td>
             </tr>
 
             <tr v-for="(memberAcc) in memberlist">
@@ -73,7 +62,7 @@ export default {
     return{
       chatData: {
         msg: '',
-        chatSelect: 'all',
+        chatSelect: this.roomBelong,
       },
       Acc:'',
       roomJoin: [],
@@ -81,20 +70,21 @@ export default {
       status: '',
       msgs: [],
       memberlist: [],
+      roomBelong: '',
     };
   },
   methods: {
   
     isOnline()
     {
-      this.$socket.emit('isOnline',sessionStorage.token);
+      this.$socket.emit('isOnline',localStorage.token);
     },
 
     say()
     {
       let chatData = {
         msg: this.chatData.msg,
-        token: sessionStorage.token,
+        token: localStorage.token,
         chatSelect: this.chatData.chatSelect,
       };
       this.$socket.emit('say', chatData);
@@ -104,22 +94,24 @@ export default {
       }, 0);
     },
 
-    join()
-    {
-      let joinData = {
-        token: sessionStorage.token,
-        roomids: this.roomJoin,
-      };
-      this.$socket.emit('join', joinData);
-      console.log('joined');
-    },
+    //////////////////////////待改
+    // join()
+    // {
+    //   let joinData = {
+    //     token: localStorage.token,
+        
+    //     roomids: this.roomJoin,
+    //   };
+    //   this.$socket.emit('join', joinData);
+    //   console.log('joined');
+    // },
   },
 
   sockets: {
     connect()
     {
       this.status = 'Connceted';
-      this.$socket.emit('isOnline',sessionStorage.token);
+      this.$socket.emit('isOnline',localStorage.token);
     },
     
     notLogined()
@@ -128,10 +120,13 @@ export default {
       // window.location.href = 'http://192.168.4.114';
     },
 
-    showSelfAcc(memberAcc)
+    showSelfMsg(memberMsg)
     {
-      sessionStorage.setItem('Account',memberAcc);
-      this.Acc = memberAcc;
+      localStorage.setItem('Account',memberMsg.Acc);
+      this.Acc = memberMsg.Acc;
+      localStorage.setItem('roomBelong', memberMsg.roomBelong);
+      this.roomBelong = memberMsg.roomBelong;
+      this.chatData.chatSelect = memberMsg.roomBelong;
     },
 
     showAllMember(memberOnlineArray)
@@ -161,7 +156,11 @@ export default {
   },
 
   mounted() {
-    sessionStorage.setItem('token',window.name);
+    var theToken = window.name;
+    /////////////////////////////////////////////////////////待改    firefox 無痕視窗會有問題
+    if(localStorage.token == null || theToken)
+      localStorage.setItem('token',theToken);
+    console.log(typeof theToken);
   }
 }
 
