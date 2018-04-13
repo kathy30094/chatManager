@@ -35,6 +35,7 @@
               <td><input type="radio" v-model="chatData.chatSelect" :value='memberAcc' name="chose"/></td>
             </tr>
           </table>
+          <button type='button' @click="kick">Kick</button>
         </div>
       </div>
       
@@ -75,7 +76,16 @@ export default {
     };
   },
   methods: {
-  
+    
+    kick()
+    {
+      let kick = {
+        toKick: this.chatData.chatSelect,
+        token: localStorage.token,
+      },
+      this.$socket.emit('kick',kick);
+    },
+
     isOnline()
     {
       this.$socket.emit('isOnline',localStorage.token);
@@ -96,7 +106,7 @@ export default {
     announce()
     {
       let announceData = {
-        msg: ' ( 公告 ) '+this.chatData.msg,
+        msg: ' ( 公告 ) : '+this.chatData.msg,
         token: localStorage.token,
         chatSelect: this.chatData.chatSelect,
         TimeOut: 600,
@@ -231,7 +241,7 @@ export default {
   }
 
   #msg {
-    width: 75%;
+    width: 66%;
   }
   
   span#Acc {

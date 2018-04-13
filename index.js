@@ -83,6 +83,15 @@ io.on('connection', (socket) => {
             socket.emit('message',{"event":'getAnnounce', "data": deAnnounceList});
     }
 
+    socket.on('kick', async (kick) => {
+        //memberdata = await authAndGetAcc(kick.token);
+        ///////////////////////////////////////////////////////////////////////////////////////////////所有設定＆找socketid的都要一起改
+        ////[{token : []},{socket : []}]
+        AccData = JSON.parse(await redisClient_onlineAcc.get(kick.toKick));
+
+        tokens.token = AccData.token;
+    });
+
     socket.on('announce', async (announceData) => {
 
         //檢查是否登入
@@ -283,7 +292,7 @@ io.on('connection', (socket) => {
                 //redis
                 var socketsIdChatTo = JSON.parse(await redisClient_onlineAcc.get(chatData.chatSelect));
 
-                //給自己
+                //給自己   ///////////////////////////////////////////待改
                 socket.emit('message',{'event':'say', 'data': retData});
 
                 //給對象
