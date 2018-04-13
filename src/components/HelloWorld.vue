@@ -50,6 +50,7 @@
           <span class="dot">: </span>
           <input v-model="chatData.msg" name="msg" id="msg" placeholder="說點什麼？" @keyup.13="say">
           <button type='button' @click="say">送出</button>
+          <button type='button' @click="announce">發公告</button>
         </div>
       </div>
     </div>
@@ -88,10 +89,21 @@ export default {
         chatSelect: this.chatData.chatSelect,
       };
       this.$socket.emit('say', chatData);
-      var chatbox = document.getElementsByClassName('chat-box');
-      setTimeout(() => {
-        chatbox[0].scrollTop = 9999999;
-      }, 0);
+      //把chatbox滾輪拉到最下面
+
+    },
+
+    announce()
+    {
+      let announceData = {
+        msg: ' ( 公告 ) '+this.chatData.msg,
+        token: localStorage.token,
+        chatSelect: this.chatData.chatSelect,
+        TimeOut: 600,
+      };
+      this.$socket.emit('say',announceData);
+      this.$socket.emit('announce',announceData);
+      
     },
 
     //////////////////////////待改
@@ -144,10 +156,20 @@ export default {
           this.msgs.push(msg.data.Acc+" join in room "+msg.data.roomid);
           break;
         case 'say':
-          console.log(msg.data.Acc+' : '+msg.data.msg+" -----> to  " + msg.data.chatSelect);
+          console.log(msg.data.Acc+" --> " + msg.data.chatSelect+' : '+msg.data.msg);
           this.msgs.push(msg.data.Acc+" --> " + msg.data.chatSelect+' : '+msg.data.msg);
           break;
+        case 'getAnnounce':
+          msg.data.forEach(announce => {
+            this.msgs.push(announce);
+            console.log(announce);
+          });
+          break;
       };
+      var chatbox = document.getElementsByClassName('chat-box');
+      setTimeout(() => {
+        chatbox[0].scrollTop = 9999999;
+      }, 0);
     },
 
     disconnect(){

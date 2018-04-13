@@ -26,6 +26,9 @@ redisClient_onlineSocket.select(3);
 const redisClient_room = asyncRedis.createClient();
 redisClient_room.select(4);
 
+const redisClient_announce = asyncRedis.createClient();
+redisClient_announce.select(5);
+
 
 //redisAdapter
 const redis = require('redis');
@@ -44,10 +47,73 @@ var memberdata = {};
 var memberSockets = [];
 var membersInRoom = [];
 //connection
+
 io.on('connection', (socket) => {
 
     console.log('Hello!');  // 顯示 Hello!
     
+    async function authAndGetAcc(token)
+    {
+        var res = await redisClient_token.get(token);
+        //console.log("res :    "+res);
+
+        if(res != null)
+        {
+            data = JSON.parse(res);
+            console.log(res);
+            return data;
+        }
+        else
+        {
+            memberdata = {};
+            socket.emit('notLogined');
+        }
+    };
+    
+    async function getAnnounce(roomBelong)
+    {
+        
+        announceList = await redisClient_announce.keys('__'+roomBelong+'__'+'*');
+        console.log('get announce from '+ roomBelong );
+        deAnnounceList = [];
+        announceList.forEach(announce => {
+            deAnnounceList.push(decodeURIComponent(announce));
+        });
+        if(announceList)
+            socket.emit('message',{"event":'getAnnounce', "data": deAnnounceList});
+    }
+
+    socket.on('announce', async (announceData) => {
+
+        //檢查是否登入
+        memberdata = await authAndGetAcc(announceData.token);
+        console.log('memberdata.Acc ; '+memberdata.Account);
+
+        //檢查是否為agent
+        if(memberdata.Status == '0')
+        {
+            var rooms = await redisClient_room.keys('*');
+
+            if(rooms.includes(announceData.chatSelect))//redis清單內有這個room
+            {
+                if(typeof socket.adapter.rooms[announceData.chatSelect]!='undefined')
+                {
+                    //找到已經在room裡的成員
+                    var peopleInRoom=Object.keys(socket.adapter.rooms[announceData.chatSelect].sockets);
+
+                    //檢查自己有沒有在裡面
+                    if(peopleInRoom.includes(socket.id))
+                    {
+                        //存入redis //room name to be key
+                        console.log(announceData.msg);
+                        await redisClient_announce.set('__'+announceData.chatSelect+'__'+encodeURIComponent(announceData.msg),JSON.stringify(announceData));
+                        await redisClient_announce.expire('__'+announceData.chatSelect+'__'+encodeURIComponent(announceData.msg),announceData.TimeOut);
+                    }
+                }
+            }
+        }
+    });
+
     //一登入就進來登記
     socket.on('isOnline',async (token) => {
 
@@ -77,10 +143,11 @@ io.on('connection', (socket) => {
     
                 socket.emit('showSelfMsg',memberMsg);
 
+                socket.join(memberdata.roomBelong);
+                await getAnnounce(memberdata.roomBelong);
+
                 //加入房間(roomAgentX,member array)
                 membersInRoomRedis = await redisClient_room.get(memberdata.roomBelong);
-
-                socket.join(memberdata.roomBelong);
 
                 if(membersInRoomRedis != null)
                 {
@@ -290,6 +357,6 @@ io.on('connection', (socket) => {
     });
 });
 
-server.listen(3000, (req, res) => {
-    console.log("server started. http://localhost:3000");
+server.listen(10001, (req, res) => {
+    console.log("server started. http://localhost:10001");
 });
