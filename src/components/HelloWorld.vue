@@ -99,8 +99,6 @@ export default {
         chatSelect: this.chatData.chatSelect,
       };
       this.$socket.emit('say', chatData);
-      //把chatbox滾輪拉到最下面
-
     },
 
     announce()
@@ -119,13 +117,13 @@ export default {
     //////////////////////////待改
     // join()
     // {
-    //   let joinData = {
-    //     token: localStorage.token,
-        
-    //     roomids: this.roomJoin,
-    //   };
-    //   this.$socket.emit('join', joinData);
-    //   console.log('joined');
+      //   let joinData = {
+      //     token: localStorage.token,
+          
+      //     roomids: this.roomJoin,
+      //   };
+      //   this.$socket.emit('join', joinData);
+      //   console.log('joined');
     // },
   },
 
@@ -133,6 +131,11 @@ export default {
     membersInRoom(data)
     {
       console.log(data.roomName+' : '+data.members);
+      if(data.roomName == localStorage.roomBelong)
+      {
+        this.memberlist = data.members;
+        this.peopleOnline = data.members.length;
+      }
     },
 
     connect()
@@ -143,8 +146,8 @@ export default {
     
     notLogined()
     {
-      // alert('請先登入！');
-      // window.location.href = 'http://192.168.4.114';
+      alert('請先登入！');
+      window.location.href = 'http://192.168.4.114';
     },
 
     showSelfMsg(memberMsg)
@@ -156,11 +159,11 @@ export default {
       this.chatData.chatSelect = memberMsg.roomBelong;
     },
 
-    showAllMember(memberOnlineArray)
-    {
-      this.memberlist = memberOnlineArray;
-      this.peopleOnline = memberOnlineArray.length;
-    },
+    // showAllMember(memberOnlineArray)
+    // {
+    //   this.memberlist = memberOnlineArray;
+    //   this.peopleOnline = memberOnlineArray.length;
+    // },
     
     message(msg)
     {

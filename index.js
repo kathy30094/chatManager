@@ -135,6 +135,8 @@ io.on('connection', (socket) => {
 
     async function saveRoomDataToRedis(roomBelong, Acc)
     {
+        socket.join(roomBelong);
+        
         membersInRoomRedis = null;
         membersInRoom = [];
         //加入redis房間  .set(roomXXXX, [member array])
@@ -162,9 +164,8 @@ io.on('connection', (socket) => {
             await redisClient_room.set(roomBelong, JSON.stringify(membersInRoom));
             console.log("member in "+roomBelong + " : "+ membersInRoom+"    new room");
         }
-
+        socket.emit('membersInRoom',{'roomName': roomBelong,'members': membersInRoom});
         //進入房間後，接著拿取房間的公告
-        socket.join(roomBelong);
         await getAnnounce(roomBelong);
 
     }
