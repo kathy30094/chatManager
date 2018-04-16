@@ -82,7 +82,7 @@ export default {
       let kick = {
         toKick: this.chatData.chatSelect,
         token: localStorage.token,
-      },
+      };
       this.$socket.emit('kick',kick);
     },
 
@@ -130,6 +130,11 @@ export default {
   },
 
   sockets: {
+    membersInRoom(data)
+    {
+      console.log(data.roomName+' : '+data.members);
+    },
+
     connect()
     {
       this.status = 'Connceted';
