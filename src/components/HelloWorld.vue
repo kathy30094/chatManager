@@ -25,12 +25,16 @@
         <h2>選擇聊天對象</h2>
         <div id='chose to-say'>
           <table>
-            <tr>
+            <tr v-for="(room) in roomList">
+              <td>{{room}}</td>
+              <td><input type="radio" v-model="chatData.chatSelect" :value='room' name="chose"/></td>
+            </tr>
+            <!-- <tr>
               <td><label>{{roomBelong}}</label></td>
               <td><input type="radio" v-model="chatData.chatSelect" :value='roomBelong' name="chose"/></td>
-            </tr>
+            </tr> -->
 
-            <tr v-for="(memberAcc) in memberlist">
+            <tr v-for="(memberAcc) in memberList">
               <td>{{memberAcc}}</td>
               <td><input type="radio" v-model="chatData.chatSelect" :value='memberAcc' name="chose"/></td>
             </tr>
@@ -71,7 +75,8 @@ export default {
       peopleOnline: '',
       status: '',
       msgs: [],
-      memberlist: [],
+      memberList: [],
+      roomList: [],
       roomBelong: '',
     };
   },
@@ -133,9 +138,14 @@ export default {
       console.log(data.roomName+' : '+data.members);
       if(data.roomName == localStorage.roomBelong)
       {
-        this.memberlist = data.members;
+        this.memberList = data.members;
         this.peopleOnline = data.members.length;
       }
+    },
+    allRooms(data)
+    {
+      this.roomList = data;
+      console.log(data);
     },
 
     connect()
@@ -161,7 +171,7 @@ export default {
 
     // showAllMember(memberOnlineArray)
     // {
-    //   this.memberlist = memberOnlineArray;
+    //   this.memberList = memberOnlineArray;
     //   this.peopleOnline = memberOnlineArray.length;
     // },
     
@@ -218,14 +228,14 @@ export default {
 
   .side-nav {
     display: inline-block;
-    width: 25%;
+    width: 30%;
     border-right: 3px solid rgb(177, 177, 177);
     height: 88%;
   }
 
   .chatroom {
     display: inline-block;
-    width: 70%;
+    width: 65%;
     padding-left: 2%;
     height: 88%;
     margin-top: 0;
