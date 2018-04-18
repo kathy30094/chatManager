@@ -73,7 +73,7 @@ io.on('connection', (socket) => {
     async function getAnnounce(roomBelong)
     {
         
-        announceList = await redisClient_announce.keys('__'+roomBelong+'__'+'*');
+        announceList = await redisClient_announce.keys(roomBelong+':'+'*');
         console.log('get announce from '+ roomBelong );
         deAnnounceList = [];
         announceList.forEach(announce => {
@@ -126,8 +126,8 @@ io.on('connection', (socket) => {
                     {
                         //存入redis //room name to be key
                         console.log(announceData.msg);
-                        await redisClient_announce.set('__'+announceData.chatSelect+'__'+encodeURIComponent(announceData.msg),JSON.stringify(announceData));
-                        await redisClient_announce.expire('__'+announceData.chatSelect+'__'+encodeURIComponent(announceData.msg),announceData.TimeOut);
+                        await redisClient_announce.set(announceData.chatSelect+':'+encodeURIComponent(announceData.msg),JSON.stringify(announceData));
+                        await redisClient_announce.expire(announceData.chatSelect+':'+encodeURIComponent(announceData.msg),announceData.TimeOut);
                     }
                     
                 }
@@ -136,8 +136,8 @@ io.on('connection', (socket) => {
                 {
                     //存入redis //room name to be key
                     console.log(announceData.msg);
-                    await redisClient_announce.set('__'+announceData.chatSelect+'__'+encodeURIComponent(announceData.msg),JSON.stringify(announceData));
-                    await redisClient_announce.expire('__'+announceData.chatSelect+'__'+encodeURIComponent(announceData.msg),announceData.TimeOut);
+                    await redisClient_announce.set(announceData.chatSelect+':'+encodeURIComponent(announceData.msg),JSON.stringify(announceData));
+                    await redisClient_announce.expire(announceData.chatSelect+':'+encodeURIComponent(announceData.msg),announceData.TimeOut);
                 }
             }
         }
@@ -173,9 +173,9 @@ io.on('connection', (socket) => {
             console.log("member in "+roomToJoin + " : "+ membersInRoom+"    new room");
         }
 
-        //向 room內所有其他人 & roomAgentX_Agent 更新room內人員名單
+        //向 room內所有其他人 & roomAgentX:Agent 更新room內人員名單
         if(roomBelong == roomToJoin)
-            io.in(roomBelong+'_Agent').emit('membersInRoom',{'roomName': roomToJoin,'members': membersInRoom});
+            io.in(roomBelong+':Agent').emit('membersInRoom',{'roomName': roomToJoin,'members': membersInRoom});
         else
             io.in(roomToJoin).emit('membersInRoom',{'roomName': roomToJoin,'members': membersInRoom});
     
@@ -211,7 +211,7 @@ io.on('connection', (socket) => {
                 socket.emit('showSelfMsg',memberMsg);
 
                 ///add to redis room
-                await saveRoomDataToRedis(memberdata.roomBelong,'_Agent', memberdata.Account);
+                await saveRoomDataToRedis(memberdata.roomBelong,':Agent', memberdata.Account);
                 await saveRoomDataToRedis(memberdata.roomBelong,'', memberdata.Account);
                 
                 //對自己  更新存在的房間清單
