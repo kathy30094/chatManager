@@ -10,9 +10,13 @@
     "build": "node build/build.js"
   },
   "dependencies": {
+    "async-mysql": "^1.0.1",
     "async-redis": "^1.1.4",
     "bluebird": "^3.5.1",
     "express": "^4.16.3",
+    "mysql": "^2.15.0",
+    "mysql2": "^1.5.3",
+    "promise-mysql": "^3.2.1",
     "redis": "^2.8.0",
     "redis-await": "^1.0.6",
     "socket.io": "^2.1.0",

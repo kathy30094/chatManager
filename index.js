@@ -11,6 +11,15 @@ const io = require('socket.io')(server);
 
 const _ = require('underscore');
 
+const mysql = require('mysql2/promise');
+const mysqlConnectionData = {
+    host    : 'localhost',
+    user    : 'saaa',
+    password: 'dk3u31j4dk3u3',
+    database: 'company'
+};
+
+
 //async-redis settings
     const asyncRedis = require("async-redis");
 
@@ -403,6 +412,11 @@ server.listen(10001, async (req, res) => {
     redisClient_onlineAcc.flushdb();
     await redisClient_room.flushdb();
     console.log('flushdb');
-    //從MySQL拿房間資料
     
+    //從MySQL拿房間資料
+    const mysqlConnection = await mysql.createConnection(mysqlConnectionData);
+    [rows,fields] = await mysqlConnection.execute('SELECT * FROM `employees`');
+
+    console.log([rows][0][0]);
+
 });
