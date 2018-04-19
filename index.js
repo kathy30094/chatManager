@@ -73,15 +73,21 @@ io.on('connection', (socket) => {
     async function getAnnounce(roomBelong)
     {
         
-        announceList = await redisClient_announce.keys(roomBelong+':'+'*');
+        announceList = await redisClient_announce.keys(roomBelong+':*');
         console.log('get announce from '+ roomBelong );
         deAnnounceList = [];
-        announceList.forEach(announce => {
-            deAnnounceList.push(decodeURIComponent(announce));
-        });
+        
         if(announceList)
+        {
+            announceList.forEach(announce => {
+                deAnnounceList.push(decodeURIComponent(announce));
+            });
+            console.log(roomBelong+'  announceList : '+deAnnounceList);
             socket.emit('message',{"event":'getAnnounce', "data": deAnnounceList});
+        }
+            
     }
+
 
     socket.on('kick', async (kick) => {
        
@@ -173,9 +179,9 @@ io.on('connection', (socket) => {
             console.log("member in "+roomToJoin + " : "+ membersInRoom+"    new room");
         }
 
-        //向 room內所有其他人 & roomAgentX:Agent 更新room內人員名單
+        //向 room內所有其他人 & roomAgentX_:Agent 更新room內人員名單
         if(roomBelong == roomToJoin)
-            io.in(roomBelong+':Agent').emit('membersInRoom',{'roomName': roomToJoin,'members': membersInRoom});
+            io.in(roomBelong+'_:Agent').emit('membersInRoom',{'roomName': roomToJoin,'members': membersInRoom});
         else
             io.in(roomToJoin).emit('membersInRoom',{'roomName': roomToJoin,'members': membersInRoom});
     
@@ -211,7 +217,7 @@ io.on('connection', (socket) => {
                 socket.emit('showSelfMsg',memberMsg);
 
                 ///add to redis room
-                await saveRoomDataToRedis(memberdata.roomBelong,':Agent', memberdata.Account);
+                await saveRoomDataToRedis(memberdata.roomBelong,'_:Agent', memberdata.Account);
                 await saveRoomDataToRedis(memberdata.roomBelong,'', memberdata.Account);
                 
                 //對自己  更新存在的房間清單

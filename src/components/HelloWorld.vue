@@ -157,7 +157,7 @@ export default {
     notLogined()
     {
       alert('請先登入！');
-      window.location.href = 'http://192.168.4.114';
+      window.location.href = 'http://192.168.4.114:8080';
     },
 
     showSelfMsg(memberMsg)
