@@ -114,7 +114,7 @@ export default {
         chatSelect: this.chatData.chatSelect,
         TimeOut: 1800,
       };
-      this.$socket.emit('say',announceData);
+      //this.$socket.emit('say',announceData);
       this.$socket.emit('announce',announceData);
       
     },

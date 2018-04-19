@@ -146,6 +146,10 @@ io.on('connection', (socket) => {
                     await redisClient_announce.expire(announceData.chatSelect+':'+encodeURIComponent(announceData.msg),announceData.TimeOut);
                 }
             }
+
+            //配發給room內的成員 & self
+            io.to(announceData.chatSelect).emit('message',{"event":'getAnnounce', "data": [announceData.chatSelect+':'+announceData.msg]});
+            
         }
     });
 
