@@ -160,7 +160,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    async function saveRoomDataToRedis(roomBelong,toJoin, Acc)
+    async function romSaveJoinEmit(roomBelong,toJoin, Acc)
     {
         roomToJoin = toJoin+':current';
         socket.join(toJoin);
@@ -192,7 +192,7 @@ io.on('connection', (socket) => {
 
         //向 room內所有其他人 & roomAgentX_:Agent 更新room內人員名單
         if(roomToJoin == roomBelong+'_:'+roomBelong)
-            io.in(roomBelong+'_:Agent').emit('membersInRoom',{'roomName': roomToJoin,'members': membersInRoom});
+            io.in(roomBelong+'_:Agent').emit('membersInRoom',{'roomName': toJoin,'members': membersInRoom});
         else
             io.in(toJoin).emit('membersInRoom',{'roomName': toJoin,'members': membersInRoom});
     
@@ -229,9 +229,10 @@ io.on('connection', (socket) => {
 
                 ///add to redis room
                 ///(roomBelong,roomName from Mysql,memberAccount)
-                await saveRoomDataToRedis(memberdata.roomBelong,memberdata.roomBelong+'_:Agent', memberdata.Account);
-                await saveRoomDataToRedis(memberdata.roomBelong,memberdata.roomBelong+'_:'+memberdata.roomBelong, memberdata.Account);
-                
+                rooms = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account));
+                for(let room of rooms)
+                    await romSaveJoinEmit(memberdata.roomBelong,room,memberdata.Account);
+
                 //對自己  更新存在的房間清單
                 var roomList = await redisClient_room.keys(memberdata.roomBelong+'*');
                 var roomToShow = [];
@@ -239,6 +240,7 @@ io.on('connection', (socket) => {
                     if(element.slice(-4)==':all')
                         roomToShow.push(element.slice(0,-4));
                 });
+
                 socket.emit('allRooms',roomToShow);
         
                 //加入Acc總表(Acc,socket id array)
@@ -425,7 +427,6 @@ server.listen(10001, async (req, res) => {
     [rows,fields] = await mysqlConnection.execute('SELECT roomName,member FROM roomData');
     
     var roomList = {};
-
     rows.forEach(row => {
         if(roomList.hasOwnProperty(row.roomName))
             roomList[row.roomName].push(row.member);
@@ -433,12 +434,22 @@ server.listen(10001, async (req, res) => {
             roomList[row.roomName] = [row.member]
         //console.log(row.roomName+' : '+roomList[row.roomName]);
     });
-
     for(let element in roomList){
         console.log(element +"   "+ roomList[element]);
         await redisClient_room.set(element+':all',JSON.stringify(roomList[element]));
     }
 
+    var member_room = {};
+    rows.forEach(row => {
+        if(member_room.hasOwnProperty(row.member))
+            member_room[row.member].push(row.roomName);
+        else
+            member_room[row.member] = [row.roomName]
+    });
+    for(let element in member_room){
+        console.log(element +"   "+ member_room[element]);
+        await redisClient_onlineAcc.set('roomData:'+element,JSON.stringify(member_room[element]));
+    }
     //console.log(rows);
 
 });
