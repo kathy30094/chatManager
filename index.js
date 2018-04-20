@@ -232,7 +232,7 @@ io.on('connection', (socket) => {
                 await saveRoomDataToRedis(memberdata.roomBelong,'', memberdata.Account);
                 
                 //對自己  更新存在的房間清單
-                socket.emit('allRooms',await redisClient_room.keys(memberdata.roomBelong+'*'));
+                socket.emit('allRooms',await redisClient_room.keys(memberdata.roomBelong+'*'+'__'));
         
                 //加入Acc總表(Acc,socket id array)
                 socketAndToken = await redisClient_onlineAcc.get(memberdata.Account);
@@ -415,8 +415,23 @@ server.listen(10001, async (req, res) => {
     
     //從MySQL拿房間資料
     const mysqlConnection = await mysql.createConnection(mysqlConnectionData);
-    [rows,fields] = await mysqlConnection.execute('SELECT * FROM `employees`');
+    [rows,fields] = await mysqlConnection.execute('SELECT roomName,member FROM roomData');
+    
+    var roomList = {};
 
-    console.log([rows][0][0]);
+    rows.forEach(row => {
+        if(roomList.hasOwnProperty(row.roomName))
+            roomList[row.roomName].push(row.member);
+        else
+            roomList[row.roomName] = [row.member]
+        //console.log(row.roomName+' : '+roomList[row.roomName]);
+    });
+
+    for(let element in roomList){
+        console.log(element +"   "+ roomList[element]);
+        await redisClient_room.set(element+'_',JSON.stringify(roomList[element]));
+    }
+
+    //console.log(rows);
 
 });
