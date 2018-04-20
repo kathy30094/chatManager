@@ -232,7 +232,7 @@ io.on('connection', (socket) => {
                 await saveRoomDataToRedis(memberdata.roomBelong,'', memberdata.Account);
                 
                 //對自己  更新存在的房間清單
-                socket.emit('allRooms',await redisClient_room.keys(memberdata.roomBelong+'*'+'__'));
+                socket.emit('allRooms',await redisClient_room.keys(memberdata.roomBelong+'*'));
         
                 //加入Acc總表(Acc,socket id array)
                 socketAndToken = await redisClient_onlineAcc.get(memberdata.Account);
