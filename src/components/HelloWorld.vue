@@ -10,19 +10,10 @@
         <!-- //////////////////////////////////////////待改 -->
          <h2>加入房間</h2>
         <div id='join room'>
-          <input v-model="roomToJoin" name="joinRoom" id="joinRoom" placeholder="Room to join ..." @keyup.13="joinRoom">
+          <input v-model="roomName" name="joinRoom" id="joinRoom" placeholder="Room to join ..." @keyup.13="joinRoom">
+          <br>
           <button type='button' @click="joinRoom">加入</button>
-          <button type='button' @click="joinRoom">離開</button>
-          <!--
-          <br>
-          <label>roomA</label> <input type="checkbox" value="roomA" v-model="roomToJoin">
-          <br>
-          <label>roomB</label> <input type="checkbox" value="roomB" v-model="roomToJoin">
-          <br>
-          <label>roomC</label> <input type="checkbox" value="roomC" v-model="roomToJoin">
-          <br>
-          <button type='button' @click="join">加入</button>
-           -->
+          <button type='button' @click="leaveRoom">離開</button>
         </div>
 
         <h2>選擇聊天對象</h2>
@@ -74,7 +65,7 @@ export default {
         chatSelect: this.roomBelong,
       },
       Acc:'',
-      roomToJoin: '',
+      roomName: '',
       peopleOnline: '',
       status: '',
       msgs: [],
@@ -122,14 +113,24 @@ export default {
       
     },
 
+    leaveRoom()
+    {
+      let leaveData = {
+        token: localStorage.token,
+        roomName: this.roomName,
+      };
+      this.$socket.emit('leaveRoom',leaveData);
+      console.log('leave');
+    },
+
     joinRoom()
     {
-        let joinData = {
-          token: localStorage.token,
-          roomName: this.roomToJoin,
-        };
-        this.$socket.emit('joinRoom', joinData);
-        console.log('joined');
+      let joinData = {
+        token: localStorage.token,
+        roomName: this.roomName,
+      };
+      this.$socket.emit('joinRoom', joinData);
+      console.log('joined');
     },
   },
 
