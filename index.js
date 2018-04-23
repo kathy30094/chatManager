@@ -95,10 +95,13 @@ io.on('connection', (socket) => {
             
     }
 
-    async function romSaveJoinEmit(roomBelong,toJoin, Acc)
+    async function romSaveJoinEmit(roomBelong, toJoin, Acc, socketid)
     {
         roomToJoin = toJoin+':current';
-        socket.join(toJoin);
+        io.of('/').adapter.remoteJoin(socketid, toJoin, (err) => {
+            if (err) { console.log('join error'); }
+            console.log('join success');
+          });
 
         membersInRoomRedis = null;
         membersInRoom = [];
@@ -136,14 +139,66 @@ io.on('connection', (socket) => {
 
     }
 
-    socket.on('kick', async (kick) => {
+    
 
-        memberdata = await authAndGetAcc(kick.token);
+    socket.on('joinRoom', async (joinData) => {
+
+        memberdata = await authAndGetAcc(joinData.token);
+
+        roomName = memberdata.roomBelong+'_:'+joinData.roomName
+
+        //新增mysql內容  roomName / Acc
+        const mysqlConnection = await mysql.createConnection(mysqlConnectionData);
+        await mysqlConnection.execute('INSERT INTO `roomData`(`roomName`, `member`) VALUES (?,?)',[roomName, memberdata.Account]);
+        
+        //roomAgentX_:roomName:all 更新
+        roomMember = JSON.parse(await redisClient_room.get(roomName+':all'));
+
+        //新room，新增
+        if(roomMember == null)
+        {
+            io.in()
+            console.log(1);
+            await redisClient_room.set(roomName+':all',JSON.stringify([memberdata.Account]));
+        }
+        //已經有這個房間，更新
+        else
+        {
+            roomMember.push(memberdata.Account);
+            await redisClient_room.set(roomName+':all',JSON.stringify(roomMember));
+            console.log(2);
+        }
+
+        memberSockets = JSON.parse(await redisClient_onlineAcc.get(memberdata.Account)).socketid;
+        console.log(memberSockets);
+
+        for(var socketid of memberSockets)
+        {
+            console.log(socketid);
+            await romSaveJoinEmit(memberdata.roomBelong, roomName, memberdata.Account, socketid);
+        }
+
+        //對Agent & room成員 更新存在的房間清單
+        var roomList = await redisClient_room.keys(memberdata.roomBelong+'*');
+        var roomToShow = [];
+        roomList.forEach(element => {
+            if(element.slice(-4)==':all')
+                roomToShow.push(element.slice(0,-4));
+        });
+
+        io.in(roomName).emit('allRooms',roomToShow);
+        io.in(memberdata.roomBelong+'_:Agent').emit('allRooms',roomToShow);
+
+    });
+
+    socket.on('kick', async (kickData) => {
+
+        memberdata = await authAndGetAcc(kickData.token);
 
         if(memberdata.Status == '0')
         {
             //檢查被kick的人狀態，如果是Agent則無法被kick
-            AccToken = JSON.parse(await redisClient_onlineAcc.get(kick.toKick)).token;
+            AccToken = JSON.parse(await redisClient_onlineAcc.get(kickData.toKick)).token;
             status = JSON.parse(await redisClient_token.get(AccToken[0])).Status;
             if(status==1) //Player
             {
@@ -152,7 +207,7 @@ io.on('connection', (socket) => {
                 });
 
                 //給對象
-                var socketsIdToKick = JSON.parse(await redisClient_onlineAcc.get(kick.toKick));
+                var socketsIdToKick = JSON.parse(await redisClient_onlineAcc.get(kickData.toKick));
                 socketsIdToKick.socketid.forEach(socketIdto => {
                     socket.to(socketIdto).emit('kickOut');
                     console.log(socketIdto+ ' logout !');
@@ -218,10 +273,10 @@ io.on('connection', (socket) => {
         };
         socket.emit('showSelfMsg',memberMsg);
 
-            //加入自己屬於的房間
+        //加入自己屬於的房間
         rooms = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account));
         for(let room of rooms)
-            await romSaveJoinEmit(memberdata.roomBelong,room,memberdata.Account);
+            await romSaveJoinEmit(memberdata.roomBelong, room, memberdata.Account, socket.id);
 
         //對自己  更新存在的房間清單
         var roomList = await redisClient_room.keys(memberdata.roomBelong+'*');

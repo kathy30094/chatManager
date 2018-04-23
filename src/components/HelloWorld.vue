@@ -8,19 +8,22 @@
       </div>
       <div class="side-nav">
         <!-- //////////////////////////////////////////待改 -->
-        <!-- <h2>加入房間</h2>
+         <h2>加入房間</h2>
         <div id='join room'>
+          <input v-model="roomToJoin" name="joinRoom" id="joinRoom" placeholder="Room to join ..." @keyup.13="joinRoom">
+          <button type='button' @click="joinRoom">加入</button>
+          <button type='button' @click="joinRoom">離開</button>
+          <!--
           <br>
-          <label>roomA</label> <input type="checkbox" value="roomA" v-model="roomJoin">
+          <label>roomA</label> <input type="checkbox" value="roomA" v-model="roomToJoin">
           <br>
-          <label>roomB</label> <input type="checkbox" value="roomB" v-model="roomJoin">
+          <label>roomB</label> <input type="checkbox" value="roomB" v-model="roomToJoin">
           <br>
-          <label>roomC</label> <input type="checkbox" value="roomC" v-model="roomJoin">
+          <label>roomC</label> <input type="checkbox" value="roomC" v-model="roomToJoin">
           <br>
           <button type='button' @click="join">加入</button>
+           -->
         </div>
-        <br>
-        <br> -->
 
         <h2>選擇聊天對象</h2>
         <div id='chose to-say'>
@@ -71,7 +74,7 @@ export default {
         chatSelect: this.roomBelong,
       },
       Acc:'',
-      roomJoin: [],
+      roomToJoin: '',
       peopleOnline: '',
       status: '',
       msgs: [],
@@ -119,17 +122,15 @@ export default {
       
     },
 
-    //////////////////////////待改
-    // join()
-    // {
-      //   let joinData = {
-      //     token: localStorage.token,
-          
-      //     roomids: this.roomJoin,
-      //   };
-      //   this.$socket.emit('join', joinData);
-      //   console.log('joined');
-    // },
+    joinRoom()
+    {
+        let joinData = {
+          token: localStorage.token,
+          roomName: this.roomToJoin,
+        };
+        this.$socket.emit('joinRoom', joinData);
+        console.log('joined');
+    },
   },
 
   sockets: {
