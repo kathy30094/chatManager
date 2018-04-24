@@ -98,7 +98,7 @@ export default {
     announce()
     {
       let announceData = {
-        msg: ' ( 公告 ) : '+this.chatData.msg,
+        msg: ' ( 公告 ) '+this.chatData.msg,
         token: localStorage.token,
         chatSelect: this.chatData.chatSelect,
         TimeOut: 1800,
