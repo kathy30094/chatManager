@@ -178,7 +178,7 @@ io.on('connection', (socket) => {
             membersInRoom_all = JSON.parse(await redisClient_room.get(roomName+':all'));
             membersInRoom_all.splice(membersInRoom_all.indexOf(memberdata.Account),1);
 
-            //如果room內有人，刪除room
+            //如果room內有人，更新room
             if(membersInRoom_all.length!=0)
                 await redisClient_room.set(roomName+':all', JSON.stringify(membersInRoom_all));
             //如果room內沒人，刪除room//對Agent & room成員 更新目前存在的房間清單
@@ -237,7 +237,7 @@ io.on('connection', (socket) => {
                 {
                     socket.broadcast.to(socketid).emit('message',{"event":'getAnnounce', "data": deAnnounceList});
                 }
-                
+
             //roomAgentX_:roomName:all 更新
             roomMember = JSON.parse(await redisClient_room.get(roomName+':all'));
 
@@ -395,15 +395,12 @@ io.on('connection', (socket) => {
         //socketid 與 Acc對照
         await redisClient_onlineSocket.set(socket.id, memberdata.Account);
 
-        console.log("member Acc " + memberdata.Account+', member sockeet id '+ socket.id + " is online");
-            
     });
     
     socket.on("say", async (chatData) => {
 
         memberdata = await authAndGetAcc(chatData.token);
 
-        console.log("chatSelect : "+chatData.chatSelect);
         //ret
         var retData={
             Acc: memberdata.Account,
@@ -472,7 +469,6 @@ io.on('connection', (socket) => {
         if(AccLeave != null)
         {
             socketAndToken = JSON.parse(await redisClient_onlineAcc.get(AccLeave));
-            console.log('socketAndToken.socketid.length : '+socketAndToken.socketid.length);
 
             //如果 某Acc 關閉最後一個分頁，要把Acc從上線中的名單移除，也從各個room中移除
             if(socketAndToken.socketid.length <= 1)
