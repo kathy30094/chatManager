@@ -7,7 +7,7 @@
           <span id="status">{{status}}</span> / <span id="online">{{peopleOnline}}</span> online.
       </div>
       <div class="side-nav">
-         <h2>加入房間</h2>
+        <h2>加入房間</h2>
         <div id='join room'>
           <input v-model="roomName" name="joinRoom" id="joinRoom" placeholder="Room to join ..." @keyup.13="joinRoom">
           <br>
@@ -15,17 +15,25 @@
           <button type='button' @click="leaveRoom">離開</button>
         </div>
 
+        <h2>已加入的房間</h2>
+        <div id='room joined'>
+          <table>
+            <tr v-for="(roomJoined) in roomJoinedList">
+              <td>{{roomJoined}}</td>
+            </tr>
+        </div>
+
         <h2>選擇聊天對象</h2>
         <div id='chose to-say'>
           <table>
             <tr v-for="(room) in roomList">
-              <td>{{room}}</td>
-              <td><input type="radio" v-model="chatData.chatSelect" :value='room' name="chose"/></td>
+                <td><label :for="room">{{room}}</label></td>
+                <td><label :for="room"><input type="radio" v-model="chatData.chatSelect" :id="room" :value='room' name="chose"/></label></td>
             </tr>
 
             <tr v-for="(memberAcc) in memberList">
-              <td>{{memberAcc}}</td>
-              <td><input type="radio" v-model="chatData.chatSelect" :value='memberAcc' name="chose"/></td>
+                <td><label :for="memberAcc">{{memberAcc}}</label></td>
+                <td><label :for="memberAcc"><input type="radio" v-model="chatData.chatSelect" :id="memberAcc" :value="memberAcc" name="chose"/></label></td>
             </tr>
           </table>
           <button type='button' @click="kick">Kick</button>
@@ -33,7 +41,7 @@
       </div>
       
       <div class="chatroom">
-         <h2>開始聊天</h2>
+        <h2>開始聊天</h2>
         <ul class="chat-box">
           <li v-for="msg in msgs">
             {{msg}}
@@ -65,6 +73,7 @@ export default {
       status: '',
       msgs: [],
       memberList: [],
+      roomJoinedList: [],
       roomList: [],
       roomBelong: '',
     };
@@ -115,7 +124,7 @@ export default {
         roomName: this.roomName,
       };
       this.$socket.emit('leaveRoom',leaveData);
-      console.log('leave');
+      console.log('leave '+this.roomName);
     },
 
     joinRoom()
@@ -125,7 +134,7 @@ export default {
         roomName: this.roomName,
       };
       this.$socket.emit('joinRoom', joinData);
-      console.log('joined');
+      console.log('join '+this.roomName);
     },
   },
 
@@ -143,6 +152,11 @@ export default {
     {
       this.roomList = data;
       console.log(data);
+    },
+
+    roomJoined(roomJoinedList)
+    {
+      this.roomJoinedList = roomJoinedList;
     },
 
     connect()

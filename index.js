@@ -162,17 +162,19 @@ io.on('connection', (socket) => {
         {
             await mysqlConnection.execute('DELETE FROM `roomData` WHERE `roomName` = ? AND `member` = ?',[roomName, memberdata.Account]);
 
-            //leave
-            memberSockets = JSON.parse(await redisClient_onlineAcc.get(memberdata.Account)).socketid;
-            console.log(memberSockets);
-
-            for(var socketid of memberSockets)
-                await leaveBySocketID(socketid, roomName);
-
             //roomData:Acc 更新
             roomData = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account));
-            roomData.splice(roomData.indexOf(memberdata.Account),1);
+            roomData.splice(roomData.indexOf(roomName),1);
             await redisClient_onlineAcc.set('roomData:'+memberdata.Account, JSON.stringify(roomData));
+
+            //leave
+            memberSockets = JSON.parse(await redisClient_onlineAcc.get(memberdata.Account)).socketid;
+            for(var socketid of memberSockets)
+            {
+                await leaveBySocketID(socketid, roomName);
+                socket.broadcast.to(socketid).emit('roomJoined',roomData);
+            }
+            socket.emit('roomJoined',roomData);
 
             //roomAgentX_:roomName:all 更新
             membersInRoom_all = JSON.parse(await redisClient_room.get(roomName+':all'));
@@ -223,6 +225,11 @@ io.on('connection', (socket) => {
             //新增mysql內容  roomName / Acc
             await mysqlConnection.execute('INSERT INTO `roomData`(`roomName`, `member`) VALUES (?,?)',[roomName, memberdata.Account]);
             
+            //roomData:Acc 更新
+            roomData = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account));
+            roomData.push(roomName);
+            await redisClient_onlineAcc.set('roomData:'+memberdata.Account, JSON.stringify(roomData));
+
             //join by sockets
             memberSockets = JSON.parse(await redisClient_onlineAcc.get(memberdata.Account)).socketid;
             for(var socketid of memberSockets)
@@ -230,7 +237,10 @@ io.on('connection', (socket) => {
                 checkAnnounceList = await roomSaveJoinEmit(memberdata.roomBelong, roomName, memberdata.Account, socketid);
                 if(checkAnnounceList!=null)
                     deAnnounceList = checkAnnounceList;
+                socket.broadcast.to(socketid).emit('roomJoined',roomData);
             }
+            socket.emit('roomJoined',roomData);
+
             //有公告
             if(deAnnounceList!=null)
                 for(var socketid of memberSockets)
@@ -240,11 +250,6 @@ io.on('connection', (socket) => {
 
             //roomAgentX_:roomName:all 更新
             roomMember = JSON.parse(await redisClient_room.get(roomName+':all'));
-
-            //roomData:Acc 更新
-            roomData = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account));
-            roomData.push(roomName);
-            await redisClient_onlineAcc.set('roomData:'+memberdata.Account, JSON.stringify(roomData));
 
             //已經有這個房間
             if(roomMember != null)
@@ -357,6 +362,7 @@ io.on('connection', (socket) => {
         rooms = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account));
         for(let room of rooms)
             await roomSaveJoinEmit(memberdata.roomBelong, room, memberdata.Account, socket.id);
+        socket.emit('roomJoined',rooms);
 
         //對自己  更新存在的房間清單
         var roomList = await redisClient_room.keys(memberdata.roomBelong+'*');
@@ -486,7 +492,7 @@ io.on('connection', (socket) => {
                     //移除
                     membersInRoom.splice(membersInRoom.indexOf(AccLeave),1);
                     
-                     //如果room內沒人，刪除room
+                    //如果room內沒人，刪除room
                     if(membersInRoom.length==0)
                         await redisClient_room.del(allRooms[i]+':current'); //如果移除了Acc之後，room裡面就沒人了，刪除沒人的room
 
