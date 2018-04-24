@@ -7,7 +7,6 @@
           <span id="status">{{status}}</span> / <span id="online">{{peopleOnline}}</span> online.
       </div>
       <div class="side-nav">
-        <!-- //////////////////////////////////////////待改 -->
          <h2>加入房間</h2>
         <div id='join room'>
           <input v-model="roomName" name="joinRoom" id="joinRoom" placeholder="Room to join ..." @keyup.13="joinRoom">
@@ -23,10 +22,6 @@
               <td>{{room}}</td>
               <td><input type="radio" v-model="chatData.chatSelect" :value='room' name="chose"/></td>
             </tr>
-            <!-- <tr>
-              <td><label>{{roomBelong}}</label></td>
-              <td><input type="radio" v-model="chatData.chatSelect" :value='roomBelong' name="chose"/></td>
-            </tr> -->
 
             <tr v-for="(memberAcc) in memberList">
               <td>{{memberAcc}}</td>
@@ -75,7 +70,7 @@ export default {
     };
   },
   methods: {
-    
+
     kick()
     {
       let kick = {
@@ -206,6 +201,7 @@ export default {
     /////////////////////////////////////////////////////////待改    firefox 無痕視窗會有問題
     if(localStorage.token == null || theToken)
       localStorage.setItem('token',theToken);
+    window.name = '';
     console.log(typeof theToken);
   }
 }

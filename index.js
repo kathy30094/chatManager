@@ -95,7 +95,7 @@ io.on('connection', (socket) => {
             
     }
 
-    async function leaveTest(socketid, roomName)
+    async function leaveBySocketID(socketid, roomName)
     {
         io.of('/').adapter.remoteLeave(socketid, roomName, (err) => {
             if (err) { console.log(err); }
@@ -166,7 +166,7 @@ io.on('connection', (socket) => {
             console.log(memberSockets);
 
             for(var socketid of memberSockets)
-                await leaveTest(socketid, roomName);
+                await leaveBySocketID(socketid, roomName);
 
             //roomData:Acc 更新
             roomData = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account));
