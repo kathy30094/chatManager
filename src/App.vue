@@ -16,6 +16,9 @@ export default {
   html, body {
       padding: 0;
       margin: 0;
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+      background-size: 100% 100%;
   }
 
   #container {

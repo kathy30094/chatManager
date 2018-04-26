@@ -8,11 +8,24 @@
       </div>
       <div class="side-nav">
         <h2>加入房間</h2>
-        <div id='join room'>
-          <input v-model="roomName" name="joinRoom" id="joinRoom" placeholder="Room to join ..." @keyup.13="joinRoom">
+        <div id='join-room'>
+          <input v-model="roomName" name="joinRoom" id="room-input" placeholder="Room to join ..." @keyup.13="joinRoom">
           <br>
-          <button type='button' @click="joinRoom">加入</button>
-          <button type='button' @click="leaveRoom">離開</button>
+          <div class="side-right">
+            <button type='button' @click="joinRoom">加入</button>
+            <button type='button' @click="leaveRoom">離開</button>
+          </div>
+        </div>
+
+        <h2>被邀請的房間</h2>
+        <div id='invited-room'>
+          <table>
+            <tr v-for="(roomInvited) in roomInvitedList">
+              <td>{{roomInvited.roomName}}</td>
+              <td><button type='button' @click="inviteResponse('accept',roomInvited.roomName)">加入</button></td>
+              <td><button type='button' @click="inviteResponse('reject',roomInvited.roomName)">拒絕</button></td>
+            </tr>
+          </table>
         </div>
 
         <h2>已加入的房間</h2>
@@ -20,23 +33,27 @@
           <table>
             <tr v-for="(roomJoined) in roomJoinedList">
               <td>{{roomJoined}}</td>
+              <td><button type='button' @click="inviteToRoom(roomJoined)">invite</button></td>
             </tr>
+          </table>
         </div>
 
         <h2>選擇聊天對象</h2>
-        <div id='chose to-say'>
+        <div id='chose-to-say'>
           <table>
             <tr v-for="(room) in roomList">
                 <td><label :for="room">{{room}}</label></td>
-                <td><label :for="room"><input type="radio" v-model="chatData.chatSelect" :id="room" :value='room' name="chose"/></label></td>
+                <label :for="room"><input type="radio" v-model="chatData.chatSelect" :id="room" :value='room' name="chose"/></label>
             </tr>
 
             <tr v-for="(memberAcc) in memberList">
                 <td><label :for="memberAcc">{{memberAcc}}</label></td>
-                <td><label :for="memberAcc"><input type="radio" v-model="chatData.chatSelect" :id="memberAcc" :value="memberAcc" name="chose"/></label></td>
+                <label :for="memberAcc"><input type="radio" v-model="chatData.chatSelect" :id="memberAcc" :value="memberAcc" name="chose"/></label>
             </tr>
           </table>
-          <button type='button' @click="kick">Kick</button>
+          <div class="side-right">
+            <button type='button' @click="kick">Kick</button>
+          </div>
         </div>
       </div>
       
@@ -74,11 +91,32 @@ export default {
       msgs: [],
       memberList: [],
       roomJoinedList: [],
+      roomInvitedList: [],
       roomList: [],
       roomBelong: '',
     };
   },
   methods: {
+
+    inviteResponse(theChose,room)
+    {
+      let responseData = {
+        chose: theChose,
+        token: localStorage.token,
+        roomName: room,
+      };
+      this.$socket.emit('inviteResponse',responseData);
+    },
+
+    inviteToRoom(room)
+    {
+      let inviteData = {
+        roomTo: room,
+        members: [9, 10],
+        token: localStorage.token,
+      };
+      this.$socket.emit('inviteToRoom',inviteData)
+    },
 
     kick()
     {
@@ -103,7 +141,7 @@ export default {
       };
       this.$socket.emit('say', chatData);
     },
-
+    
     announce()
     {
       let announceData = {
@@ -112,7 +150,6 @@ export default {
         chatSelect: this.chatData.chatSelect,
         TimeOut: 1800,
       };
-      //this.$socket.emit('say',announceData);
       this.$socket.emit('announce',announceData);
       
     },
@@ -139,6 +176,18 @@ export default {
   },
 
   sockets: {
+
+    acceptJoin(responseData)
+    {
+      this.$socket.emit('joinRoom',responseData);
+      console.log(responseData);
+    },
+
+    beInvited(inviteReqs)
+    {
+      this.roomInvitedList = inviteReqs;
+    },
+
     membersInRoom(data)
     {
       console.log(data.roomName+' : '+data.members);
@@ -227,6 +276,11 @@ export default {
   html, body, #app, .hello, #container {
     height: 100%;
   }
+
+  h2{
+    clear: both;
+  }
+
   #container {
     width: 80%;
     height: 90%;
@@ -237,6 +291,7 @@ export default {
     width: 30%;
     border-right: 3px solid rgb(177, 177, 177);
     height: 88%;
+    overflow: auto;
   }
 
   .chatroom {
@@ -252,7 +307,11 @@ export default {
     height: 85%;
     padding-left: 0;
     overflow: auto;
- 
+  }
+
+  .side-right {
+    float: right;
+    margin-right: -4px;
   }
 
   li {
@@ -271,6 +330,17 @@ export default {
   span#Acc {
     display: inline-block;
     width: 10%;
+  }
+
+  #join-room{
+    width: 70%;
+  }
+  #chose-to-say{
+    width: 70%;
+  }
+
+  #room-input {
+    width: 100%;
   }
   
 </style>

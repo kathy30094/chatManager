@@ -3,7 +3,7 @@ const app = express();
 
 app.use(express.static(__dirname + '/dist'));
 app.get('/', function(req, res){
-  res.sendfile('index.html');
+    res.sendfile('index.html');
 });
 
 const server = require('http').Server(app);
@@ -18,6 +18,17 @@ const mysqlConnectionData = {
     password: 'dk3u31j4dk3u3',
     database: 'company'
 };
+
+const ogs = require('open-graph-scraper');
+// var options = {'url': 'https://www.facebook.com/home.php'};
+// ogs(options)
+//     .then(function (result) {
+//         console.log('result:', result);
+//     })
+//     .catch(function (error) {
+//         console.log('error:', error);
+//     });
+
 
 //async-redis settings
     const asyncRedis = require("async-redis");
@@ -51,10 +62,6 @@ const mysqlConnectionData = {
     });
 //end redisAdapter
 
-var memberdata = {};
-var memberSockets = [];
-var membersInRoom = [];
-
 io.on('connection', (socket) => {
 
     console.log('Hello!');  // 顯示 Hello!
@@ -62,7 +69,6 @@ io.on('connection', (socket) => {
     async function authAndGetAcc(token)
     {
         var res = await redisClient_token.get(token);
-        //console.log("res :    "+res);
 
         if(res != null)
         {
@@ -76,7 +82,7 @@ io.on('connection', (socket) => {
             socket.emit('notLogined');
             return false;
         }
-    };
+    }
     
     async function getAnnounce(roomBelong)
     {
@@ -150,6 +156,86 @@ io.on('connection', (socket) => {
         });
     }
 
+    async function broadcastToSelf(Acc, emitName, emitData)
+    {
+        memberSockets = JSON.parse(await redisClient_onlineAcc.get(Acc)).socketid;
+        for(let socketid of memberSockets)
+            socket.broadcast.to(socketid).emit(emitName, emitData);
+        socket.emit(emitName, emitData);
+    }
+
+    socket.on('inviteResponse', async (responseData) => {
+
+        memberdata = await authAndGetAcc(responseData.token);
+
+        //刪除redis roomData:Acc:roomInvited
+        roomInvited = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account+':roomInvited'));
+        roomInvited.splice(
+            roomInvited.map(function(room){
+                return room.roomName;})
+                .indexOf(responseData.roomName),1);
+        
+        if(roomInvited.length>0)
+            redisClient_onlineAcc.set('roomData:'+memberdata.Account+':roomInvited',JSON.stringify(roomInvited));
+        else   
+            redisClient_onlineAcc.del('roomData:'+memberdata.Account+':roomInvited');
+
+        //更新前端被邀請的清單//沒有動作///////////////////////////////////////////////////////
+        await broadcastToSelf(memberdata.Account, 'beInvited', roomInvited);
+
+        //刪除mysql roomData where type = 0
+        const mysqlConnection = await mysql.createConnection(mysqlConnectionData);
+        await mysqlConnection.execute('DELETE FROM `roomData` WHERE `roomName` = ? AND `member` = ? AND `type` = 0',[responseData.roomName, memberdata.Account]);
+
+        if(responseData.chose =='accept')
+        {
+            responseData.roomName = responseData.roomName.replace(memberdata.roomBelong+'_:','');
+            socket.emit('acceptJoin',responseData);
+        }
+
+    });
+
+    socket.on('inviteToRoom', async (inviteData) => {
+        memberdata = await authAndGetAcc(inviteData.token);
+        console.log('invite '+inviteData.members+ ' to '+inviteData.roomTo);
+
+        for(var member of inviteData.members)
+        {
+            //check if is already invited or in room
+            const mysqlConnection = await mysql.createConnection(mysqlConnectionData);
+            var checkExist = await mysqlConnection.execute('SELECT * FROM `roomData` WHERE `roomName` = ? AND `member` = ?',[inviteData.roomTo, member]);
+            if(checkExist[0].length == 0)
+            {
+                let inviteReq = {
+                    invitedBy: memberdata.Account,
+                    roomName: inviteData.roomTo,
+                };
+
+                //save to redis roomData:Acc:roomInvited
+                roomDataInvited = JSON.parse(await redisClient_onlineAcc.get('roomData:'+member+':roomInvited'));
+                if(roomDataInvited)
+                    roomDataInvited.push(inviteReq);
+                else
+                    roomDataInvited = [inviteReq];
+                redisClient_onlineAcc.set('roomData:'+member+':roomInvited', JSON.stringify(roomDataInvited));
+
+                //save to mysql (Acc,roomName,memberInvited)
+                await mysqlConnection.execute(
+                    'INSERT INTO `roomData`(`roomName`, `member`, `type`, `InvitedBy`) VALUES (?,?,0,?)'
+                    ,[inviteData.roomTo, member, memberdata.Account]
+                );
+
+                //if is online --> emit
+                memberOnline = JSON.parse(await redisClient_onlineAcc.get(member));
+                if( memberOnline != null)
+                {
+                    for(let socketid of memberOnline.socketid)
+                        socket.broadcast.to(socketid).emit('beInvited', roomDataInvited);
+                }
+            }
+        }
+    });
+
     socket.on('leaveRoom', async (leaveData) => {
 
         memberdata = await authAndGetAcc(leaveData.token);
@@ -162,10 +248,10 @@ io.on('connection', (socket) => {
         {
             await mysqlConnection.execute('DELETE FROM `roomData` WHERE `roomName` = ? AND `member` = ?',[roomName, memberdata.Account]);
 
-            //roomData:Acc 更新
-            roomData = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account));
+            //roomData:Acc:Joined 更新
+            roomData = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account+':Joined'));
             roomData.splice(roomData.indexOf(roomName),1);
-            await redisClient_onlineAcc.set('roomData:'+memberdata.Account, JSON.stringify(roomData));
+            await redisClient_onlineAcc.set('roomData:'+memberdata.Account+':Joined', JSON.stringify(roomData));
 
             //leave
             memberSockets = JSON.parse(await redisClient_onlineAcc.get(memberdata.Account)).socketid;
@@ -217,18 +303,18 @@ io.on('connection', (socket) => {
         memberdata = await authAndGetAcc(joinData.token);
         roomName = memberdata.roomBelong+'_:'+joinData.roomName;
 
-        //檢查是否有此資料
+        //檢查是否已經加入  有資料且type=1
         const mysqlConnection = await mysql.createConnection(mysqlConnectionData);
-        var checkExist = await mysqlConnection.execute('SELECT * FROM `roomData` WHERE `roomName` = ? AND `member` = ?',[roomName, memberdata.Account]);
+        var checkExist = await mysqlConnection.execute('SELECT * FROM `roomData` WHERE `roomName` = ? AND `member` = ? AND `type` = ?',[roomName, memberdata.Account, 1]);
         if(checkExist[0].length == 0)
         {
             //新增mysql內容  roomName / Acc
-            await mysqlConnection.execute('INSERT INTO `roomData`(`roomName`, `member`) VALUES (?,?)',[roomName, memberdata.Account]);
+            await mysqlConnection.execute('INSERT INTO `roomData`(`roomName`, `member`) VALUES (?,?) on duplicate key UPDATE `type` = 1',[roomName, memberdata.Account]);
             
-            //roomData:Acc 更新
-            roomData = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account));
+            //roomData:Acc:Joined 更新
+            roomData = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account+':Joined'));
             roomData.push(roomName);
-            await redisClient_onlineAcc.set('roomData:'+memberdata.Account, JSON.stringify(roomData));
+            await redisClient_onlineAcc.set('roomData:'+memberdata.Account+':Joined', JSON.stringify(roomData));
 
             //join by sockets
             memberSockets = JSON.parse(await redisClient_onlineAcc.get(memberdata.Account)).socketid;
@@ -359,7 +445,7 @@ io.on('connection', (socket) => {
         socket.emit('showSelfMsg',memberMsg);
 
         //加入自己屬於的房間
-        rooms = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account));
+        rooms = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account+':Joined'));
         for(let room of rooms)
             await roomSaveJoinEmit(memberdata.roomBelong, room, memberdata.Account, socket.id);
         socket.emit('roomJoined',rooms);
@@ -372,6 +458,14 @@ io.on('connection', (socket) => {
                 roomToShow.push(element.slice(0,-4));
         });
         socket.emit('allRooms',roomToShow);
+
+        //對自己 更新invitedRooms
+        roomInvited = JSON.parse(await redisClient_onlineAcc.get('roomData:'+memberdata.Account+':roomInvited'));
+        if(roomInvited)
+        {
+            socket.emit('beInvited' ,roomInvited);
+        }
+
 
         //Acc 與 socketid & token 對照
         socketAndToken = await redisClient_onlineAcc.get(memberdata.Account);
@@ -484,7 +578,7 @@ io.on('connection', (socket) => {
                 console.log(AccLeave+' leave all chat');
 
                 //找出所有Acc加入的room，去每個房間裡看
-                allRooms = JSON.parse(await redisClient_onlineAcc.get('roomData:'+AccLeave));
+                allRooms = JSON.parse(await redisClient_onlineAcc.get('roomData:'+AccLeave+':Joined'));
                 for(let i = 0;i<allRooms.length;i++)
                 {
                     membersInRoom = JSON.parse(await redisClient_room.get(allRooms[i]+':current'));
@@ -527,14 +621,15 @@ server.listen(10001, async (req, res) => {
     
     //從MySQL拿房間資料
     const mysqlConnection = await mysql.createConnection(mysqlConnectionData);
-    [rows,fields] = await mysqlConnection.execute('SELECT roomName,member FROM roomData');
+    [rows,fields] = await mysqlConnection.execute('SELECT roomName, member FROM roomData WHERE type = 1');
     
+    //roomAgentX_:roomName:all
     var roomList = {};
     rows.forEach(row => {
         if(roomList.hasOwnProperty(row.roomName))
             roomList[row.roomName].push(row.member);
         else
-            roomList[row.roomName] = [row.member]
+            roomList[row.roomName] = [row.member];
         //console.log(row.roomName+' : '+roomList[row.roomName]);
     });
     for(let element in roomList){
@@ -542,6 +637,7 @@ server.listen(10001, async (req, res) => {
         await redisClient_room.set(element+':all',JSON.stringify(roomList[element]));
     }
 
+    //Joined
     var member_room = {};
     rows.forEach(row => {
         if(member_room.hasOwnProperty(row.member))
@@ -551,6 +647,22 @@ server.listen(10001, async (req, res) => {
     });
     for(let element in member_room){
         console.log(element +"   "+ member_room[element]);
-        await redisClient_onlineAcc.set('roomData:'+element,JSON.stringify(member_room[element]));
+        await redisClient_onlineAcc.set('roomData:'+element+':Joined',JSON.stringify(member_room[element]));
     }
+
+    //roomInvited
+    [rows,fields] = await mysqlConnection.execute('SELECT roomName, member, invitedBy FROM roomData WHERE type = 0');
+    var member_room = {};
+    rows.forEach(row => {
+        var inviteData = {'invitedBy': row.invitedBy,'roomName': row.roomName};
+        if(member_room.hasOwnProperty(row.member))
+            member_room[row.member].push(inviteData);
+        else
+            member_room[row.member] = [inviteData]
+    });
+    for(let element in member_room){
+        console.log(element +"   "+ member_room[element]);
+        await redisClient_onlineAcc.set('roomData:'+element+':roomInvited',JSON.stringify(member_room[element]));
+    }
+
 });
