@@ -61,7 +61,20 @@
         <h2>開始聊天</h2>
         <ul class="chat-box">
           <li v-for="msg in msgs">
-            {{msg}}
+            {{msg.msg}}
+            <div v-if="msg.urlResult.success==true">
+              <a :href="msg.urlResult.requestUrl">{{msg.urlResult.data.ogTitle}}</a>
+
+              <div v-if="msg.urlResult.data.ogVideo">
+                <iframe width="384" height="216" :src="msg.urlResult.data.ogVideo.url" allowfullscreen></iframe>
+              </div>
+
+              <div v-else-if="msg.urlResult.data.ogImage && !Array.isArray(msg.urlResult.data.ogImage)">
+                <a :href="msg.urlResult.requestUrl"><img :src="msg.urlResult.data.ogImage.url" width="100" height="100"></a>
+              </div>
+
+            </div>
+
           </li>
         </ul>
         <div id="send-form">
@@ -177,6 +190,31 @@ export default {
 
   sockets: {
 
+    message(msg)
+    {
+      switch(msg.event)
+      {
+        case 'join':
+          console.log(msg.data.Acc+" join in room "+msg.data.roomid);
+          this.msgs.push({msg: msg.data.Acc+" join in room "+msg.data.roomid});
+          break;
+        case 'say':
+          console.log(msg.data.Acc+" --> " + msg.data.chatSelect+' : '+msg.data.msg);
+          this.msgs.push({msg: msg.data.Acc+" --> " + msg.data.chatSelect+' : '+msg.data.msg,urlResult: msg.data.urlResult});
+          break;
+        case 'getAnnounce':
+          msg.data.forEach(announce => {
+            this.msgs.push({msg: announce});
+            console.log(announce);
+          });
+          break;
+      };
+      var chatbox = document.getElementsByClassName('chat-box');
+      setTimeout(() => {
+        chatbox[0].scrollTop = 9999999;
+      }, 0);
+    },
+
     acceptJoin(responseData)
     {
       this.$socket.emit('joinRoom',responseData);
@@ -227,31 +265,6 @@ export default {
       localStorage.setItem('roomBelong', memberMsg.roomBelong+'_:'+memberMsg.roomBelong);
       this.roomBelong = memberMsg.roomBelong+'_:'+memberMsg.roomBelong;
       this.chatData.chatSelect = memberMsg.roomBelong+'_:'+memberMsg.roomBelong;
-    },
-    
-    message(msg)
-    {
-      switch(msg.event)
-      {
-        case 'join':
-          console.log(msg.data.Acc+" join in room "+msg.data.roomid);
-          this.msgs.push(msg.data.Acc+" join in room "+msg.data.roomid);
-          break;
-        case 'say':
-          console.log(msg.data.Acc+" --> " + msg.data.chatSelect+' : '+msg.data.msg);
-          this.msgs.push(msg.data.Acc+" --> " + msg.data.chatSelect+' : '+msg.data.msg);
-          break;
-        case 'getAnnounce':
-          msg.data.forEach(announce => {
-            this.msgs.push(announce);
-            console.log(announce);
-          });
-          break;
-      };
-      var chatbox = document.getElementsByClassName('chat-box');
-      setTimeout(() => {
-        chatbox[0].scrollTop = 9999999;
-      }, 0);
     },
 
     disconnect(){

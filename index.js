@@ -20,15 +20,6 @@ const mysqlConnectionData = {
 };
 
 const ogs = require('open-graph-scraper');
-// var options = {'url': 'https://www.facebook.com/home.php'};
-// ogs(options)
-//     .then(function (result) {
-//         console.log('result:', result);
-//     })
-//     .catch(function (error) {
-//         console.log('error:', error);
-//     });
-
 
 //async-redis settings
     const asyncRedis = require("async-redis");
@@ -58,13 +49,13 @@ const ogs = require('open-graph-scraper');
     io.adapter(redisAdapter({pubClient: pub, subClient: sub}));
 
     pub.on('ready',function(err){
-        console.log('redis ready');
+        //console.log('redis ready');
     });
 //end redisAdapter
 
 io.on('connection', (socket) => {
 
-    console.log('Hello!');  // 顯示 Hello!
+    //console.log('Hello!');  // 顯示 Hello!
     
     async function authAndGetAcc(token)
     {
@@ -73,7 +64,7 @@ io.on('connection', (socket) => {
         if(res != null)
         {
             data = JSON.parse(res);
-            console.log(res);
+            //console.log(res);
             return data;
         }
         else
@@ -88,7 +79,7 @@ io.on('connection', (socket) => {
     {
         
         announceList = await redisClient_announce.keys(roomBelong+':*');
-        console.log('get announce from '+ roomBelong );
+        //console.log('get announce from '+ roomBelong );
         deAnnounceList = [];
         
         if(announceList)
@@ -96,7 +87,7 @@ io.on('connection', (socket) => {
             announceList.forEach(announce => {
                 deAnnounceList.push(decodeURIComponent(announce));
             });
-            console.log(roomBelong+'  announceList : '+deAnnounceList);
+            //console.log(roomBelong+'  announceList : '+deAnnounceList);
             socket.emit('message',{"event":'getAnnounce', "data": deAnnounceList});
             return deAnnounceList;
         }
@@ -108,7 +99,7 @@ io.on('connection', (socket) => {
         roomToJoin = toJoin+':current';
         await io.of('/').adapter.remoteJoin(socketid, toJoin, (err) => {
             if (err) { console.log('join error'); }
-            console.log(socketid + ' join success');
+            //console.log(socketid + ' join success');
         });
 
         membersInRoom = [];
@@ -124,7 +115,7 @@ io.on('connection', (socket) => {
             {
                 membersInRoom.push(Acc);
                 await redisClient_room.set(roomToJoin, JSON.stringify(membersInRoom));
-                console.log("member in "+roomToJoin + " : "+ membersInRoom);
+                //console.log("member in "+roomToJoin + " : "+ membersInRoom);
 
             }
             else
@@ -134,7 +125,7 @@ io.on('connection', (socket) => {
         {
             membersInRoom.push(Acc);
             await redisClient_room.set(roomToJoin, JSON.stringify(membersInRoom));
-            console.log("member in "+roomToJoin + " : "+ membersInRoom+"    new room");
+            //console.log("member in "+roomToJoin + " : "+ membersInRoom+"    new room");
         }
 
         //向 room內所有其他人 & roomAgentX_:Agent 更新room內人員名單
@@ -152,7 +143,7 @@ io.on('connection', (socket) => {
     {
         io.of('/').adapter.remoteLeave(socketid, roomName, (err) => {
             if (err) { console.log(err); }
-            console.log(socketid+' leave success');
+            //console.log(socketid+' leave success');
         });
     }
 
@@ -197,7 +188,7 @@ io.on('connection', (socket) => {
 
     socket.on('inviteToRoom', async (inviteData) => {
         memberdata = await authAndGetAcc(inviteData.token);
-        console.log('invite '+inviteData.members+ ' to '+inviteData.roomTo);
+        ////console.log('invite '+inviteData.members+ ' to '+inviteData.roomTo);
 
         for(var member of inviteData.members)
         {
@@ -381,7 +372,7 @@ io.on('connection', (socket) => {
                 var socketsIdToKick = JSON.parse(await redisClient_onlineAcc.get(kickData.toKick));
                 socketsIdToKick.socketid.forEach(socketIdto => {
                     socket.to(socketIdto).emit('kickOut');
-                    console.log(socketIdto+ ' logout !');
+                    ////console.log(socketIdto+ ' logout !');
                 });
             } 
         }
@@ -391,14 +382,14 @@ io.on('connection', (socket) => {
 
         //檢查是否登入
         memberdata = await authAndGetAcc(announceData.token);
-        console.log('memberdata.Acc ; '+memberdata.Account);
+        //console.log('memberdata.Acc ; '+memberdata.Account);
 
         //檢查是否為agent
         if(memberdata.Status == '0')
         {
             var rooms = await redisClient_room.keys('*');
 
-            console.log(announceData.chatSelect +'   :   '+memberdata.roomBelong);
+            //console.log(announceData.chatSelect +'   :   '+memberdata.roomBelong);
             if(rooms.includes(announceData.chatSelect+':all'))//redis清單內有這個room
             {
                 if(typeof socket.adapter.rooms[announceData.chatSelect]!='undefined')
@@ -410,7 +401,7 @@ io.on('connection', (socket) => {
                     if(peopleInRoom.includes(socket.id))
                     {
                         //存入redis //room name to be key
-                        console.log(announceData.msg);
+                        //console.log(announceData.msg);
                         await redisClient_announce.set(announceData.chatSelect+':'+encodeURIComponent(announceData.msg),JSON.stringify(announceData));
                         await redisClient_announce.expire(announceData.chatSelect+':'+encodeURIComponent(announceData.msg),announceData.TimeOut);
                     }
@@ -420,12 +411,12 @@ io.on('connection', (socket) => {
                 else if (announceData.chatSelect.indexOf(memberdata.roomBelong)!=-1) 
                 {
                     //存入redis //room name to be key
-                    console.log(announceData.msg);
+                    //console.log(announceData.msg);
                     await redisClient_announce.set(announceData.chatSelect+':'+encodeURIComponent(announceData.msg),JSON.stringify(announceData));
                     await redisClient_announce.expire(announceData.chatSelect+':'+encodeURIComponent(announceData.msg),announceData.TimeOut);
                 }
             }
-            console.log('announceData.chatSelect + announceData.msg  :  '+announceData.chatSelect+':'+announceData.msg)
+            //console.log('announceData.chatSelect + announceData.msg  :  '+announceData.chatSelect+':'+announceData.msg)
             //配發給room內的成員 & self
             io.to(announceData.chatSelect).emit('message',{"event":'getAnnounce', "data": [announceData.chatSelect+':'+announceData.msg]});
             
@@ -435,7 +426,7 @@ io.on('connection', (socket) => {
     //一登入就進來登記
     socket.on('isOnline',async (token) => {
         
-        console.log(token);
+        //console.log(token);
         memberdata = await authAndGetAcc(token);
 
         let memberMsg = {
@@ -489,7 +480,7 @@ io.on('connection', (socket) => {
             'token' : memberTokens
         };
 
-        console.log("Acc " + memberdata.Account+" SocketAndTokenToSave after push : "+JSON.stringify(socketAndTokenToSave));
+        //console.log("Acc " + memberdata.Account+" SocketAndTokenToSave after push : "+JSON.stringify(socketAndTokenToSave));
         await redisClient_onlineAcc.set(memberdata.Account, JSON.stringify(socketAndTokenToSave));
 
         //socketid 與 Acc對照
@@ -501,11 +492,27 @@ io.on('connection', (socket) => {
 
         memberdata = await authAndGetAcc(chatData.token);
 
+        msgUrl = chatData.msg.match(/(http[^\s]{7,})/g)[0];
+        var options = {'url': msgUrl};
+
+        let urlResult = await ogs(options)
+            .then(function (result) {
+                //console.log('result:', result);
+                return result;
+            })
+            .catch(function (error) {
+                console.log('error:', error);
+                return {};
+            });
+
+        console.log(urlResult);
+
         //ret
         var retData={
             Acc: memberdata.Account,
             msg: chatData.msg,
             chatSelect: chatData.chatSelect,  
+            urlResult: urlResult,
         };
 
         //redis所有room清單
@@ -556,6 +563,7 @@ io.on('connection', (socket) => {
                 socket.emit('message',{'event':'say', 'data': retData});
             }
         }
+        console.log('test');
     });
 
     // 有人離線了
@@ -575,7 +583,7 @@ io.on('connection', (socket) => {
             {
                 //從上線名單中移除
                 await redisClient_onlineAcc.del(AccLeave);
-                console.log(AccLeave+' leave all chat');
+                //console.log(AccLeave+' leave all chat');
 
                 //找出所有Acc加入的room，去每個房間裡看
                 allRooms = JSON.parse(await redisClient_onlineAcc.get('roomData:'+AccLeave+':Joined'));
@@ -597,7 +605,7 @@ io.on('connection', (socket) => {
                         io.in(allRooms[i]).emit('membersInRoom',{'roomName': allRooms[i],'members': membersInRoom});
                     }
 
-                    console.log('member in room '+allRooms[i]+' :  '+membersInRoom);
+                    //console.log('member in room '+allRooms[i]+' :  '+membersInRoom);
                 }
             }
             else  //拿掉指定的socketid from array
@@ -605,19 +613,19 @@ io.on('connection', (socket) => {
                 socketAndToken.socketid = _.without(socketAndToken.socketid, socket.id);
 
                 await redisClient_onlineAcc.set(AccLeave, JSON.stringify(socketAndToken));
-                console.log(AccLeave+" socket left : "+ JSON.stringify(socketAndToken));
+                //console.log(AccLeave+" socket left : "+ JSON.stringify(socketAndToken));
             }
         }
     });
 });
 
 server.listen(10001, async (req, res) => {
-    console.log("server started. http://localhost:10001");
+    //console.log("server started. http://localhost:10001");
     //清空redis
     redisClient_onlineSocket.flushdb();
     redisClient_onlineAcc.flushdb();
     await redisClient_room.flushdb();
-    console.log('flushdb');
+    //console.log('flushdb');
     
     //從MySQL拿房間資料
     const mysqlConnection = await mysql.createConnection(mysqlConnectionData);
@@ -630,10 +638,10 @@ server.listen(10001, async (req, res) => {
             roomList[row.roomName].push(row.member);
         else
             roomList[row.roomName] = [row.member];
-        //console.log(row.roomName+' : '+roomList[row.roomName]);
+        ////console.log(row.roomName+' : '+roomList[row.roomName]);
     });
     for(let element in roomList){
-        console.log(element +"   "+ roomList[element]);
+        //console.log(element +"   "+ roomList[element]);
         await redisClient_room.set(element+':all',JSON.stringify(roomList[element]));
     }
 
@@ -646,7 +654,7 @@ server.listen(10001, async (req, res) => {
             member_room[row.member] = [row.roomName]
     });
     for(let element in member_room){
-        console.log(element +"   "+ member_room[element]);
+        //console.log(element +"   "+ member_room[element]);
         await redisClient_onlineAcc.set('roomData:'+element+':Joined',JSON.stringify(member_room[element]));
     }
 
@@ -661,7 +669,7 @@ server.listen(10001, async (req, res) => {
             member_room[row.member] = [inviteData]
     });
     for(let element in member_room){
-        console.log(element +"   "+ member_room[element]);
+        //console.log(element +"   "+ member_room[element]);
         await redisClient_onlineAcc.set('roomData:'+element+':roomInvited',JSON.stringify(member_room[element]));
     }
 
