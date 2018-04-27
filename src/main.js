@@ -6,6 +6,12 @@ import router from './router'
 
 import VueSocketIO from "vue-socket.io";
 import socketio from 'socket.io-client';
+import BootstrapVue from 'bootstrap-vue'
+
+import 'bootstrap/dist/css/bootstrap.css'
+import 'bootstrap-vue/dist/bootstrap-vue.css'
+
+Vue.use(BootstrapVue);
 
 Vue.config.productionTip = false
 Vue.use(VueSocketIO, 'ws://localhost:10001');
