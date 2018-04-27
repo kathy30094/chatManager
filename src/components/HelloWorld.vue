@@ -1,13 +1,12 @@
 <template>
   <div class="hello">
     <div id="container">
-
       <div id="status-box">
           Server: 
           <span id="status">{{status}}</span> / <span id="online">{{onlineCount}}</span> online.
       </div>
       <div class="side-nav">
-        <h2>加入房間</h2>
+        <h4>加入房間</h4>
         <div id='join-room'>
           <input v-model="roomName" name="joinRoom" id="room-input" placeholder="Room to join ..." @keyup.13="joinRoom">
           <br>
@@ -17,23 +16,13 @@
           </div>
         </div>
 
-        <h2>被邀請的房間</h2>
+        <h4>被邀請的房間</h4>
         <div id='invited-room'>
           <table>
             <tr v-for="(roomInvited) in roomInvitedList">
               <td>{{roomInvited.roomName}}</td>
               <td><button type='button' @click="inviteResponse('accept',roomInvited.roomName)">加入</button></td>
               <td><button type='button' @click="inviteResponse('reject',roomInvited.roomName)">拒絕</button></td>
-            </tr>
-          </table>
-        </div>
-
-        <h2>已加入的房間</h2>
-        <div id='room joined'>
-          <table>
-            <tr v-for="(roomJoined) in roomJoinedList">
-              <td>{{roomJoined}}</td>
-              <td><button v-b-modal.myModal @click="roomInvite=roomJoined; checkedNames=[]; memberNotIn();" type='button'>invite</button></td>
             </tr>
           </table>
         </div>
@@ -45,7 +34,7 @@
           </b-form-checkbox-group>
         </b-modal>
 
-        <h2>選擇聊天對象</h2>
+        <h4>選擇聊天對象</h4>
         <div id='chose-to-say'>
           <table>
             <tr v-for="(room) in roomList">
@@ -65,7 +54,17 @@
       </div>
       
       <div class="chatroom">
-        <h2>開始聊天</h2>
+        <h4>已加入的房間</h4>
+        <div id='room-joined'>
+          <table>
+            <tr v-for="(roomJoined) in roomJoinedList">
+              <td>{{roomJoined}}</td>
+              <td><button v-b-modal.myModal @click="roomInvite=roomJoined; checkedNames=[]; memberNotIn();" type='button'>invite</button></td>
+            </tr>
+          </table>
+        </div>
+
+        <h4>開始聊天</h4>
         <ul class="chat-box">
           <li v-for="msg in msgs">
             {{msg.msg}}
@@ -82,8 +81,6 @@
               </div>
             </div>
             </div>
-            
-
           </li>
         </ul>
         <div id="send-form">
@@ -327,7 +324,7 @@ export default {
     height: 100%;
   }
 
-  h2{
+  h4{
     clear: both;
   }
 
@@ -354,7 +351,7 @@ export default {
   }
 
   .chat-box {
-    height: 85%;
+    height: 65%;
     padding-left: 0;
     overflow: auto;
   }
@@ -391,6 +388,17 @@ export default {
 
   #room-input {
     width: 100%;
+  }
+
+  #room-joined{
+    height: 20%;
+    overflow: auto;
+  }
+
+  #invited-room
+  {
+    height: 15%;
+    overflow: auto;
   }
   
 </style>

@@ -134,8 +134,13 @@ io.on('connection', (socket) => {
         else
             io.in(toJoin).emit('membersInRoom',{'roomName': toJoin,'members': membersInRoom});
 
-        //進入房間後，接著拿取房間的公告
-        await getAnnounce(toJoin);
+        if(socketid ==socket.id)//目前分頁進入房間後，接著拿取房間的公告
+        {
+            deAnnounceList = await getAnnounce(toJoin);
+            return deAnnounceList;
+        }
+        else
+            return null;
 
     }
 
