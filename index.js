@@ -286,10 +286,12 @@ io.on('connection', (socket) => {
             //如果room內沒人，刪除room
             if(membersInRoom.length==0)
                 await redisClient_room.del(roomName+':current');
-            else
+            else//如果room內有人，更新room，對前端更新
             {
                 await redisClient_room.set(roomName+':current', JSON.stringify(membersInRoom));
-                io.in(roomName).emit('membersInRoom',{'roomName': roomName,'members': membersInRoom});
+                if(roomName!=memberdata.roomBelong+'_:'+memberdata.roomBelong)
+                    io.in(roomName).emit('membersInRoom',{'roomName': roomName+':all','members': membersInRoom});
+                io.in(memberdata.roomBelong+'_:Agent').emit('membersInRoom',{'roomName': roomName+':all','members': membersInRoom});
             }
         }
     });
